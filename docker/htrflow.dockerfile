@@ -1,8 +1,9 @@
-ARG CUDA_VERSION=12.1.0
-ARG UBUNTU_VERSION=22.04
-ARG PYTHON_VERSION=3.10
+ARG CUDA_VERSION=13.0.2
+ARG UBUNTU_VERSION=24.04
+ARG PYTHON_VERSION=3.12
 ARG DEBIAN_FRONTEND=noninteractive
 
+# CUDA 13 containers require an NVIDIA 580-series or newer host driver.
 FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu${UBUNTU_VERSION} AS builder
 
 ARG PYTHON_VERSION
@@ -24,6 +25,8 @@ WORKDIR /app
 ENV UV_LINK_MODE=copy
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_NO_CACHE=1
+ENV UV_PYTHON_DOWNLOADS=never
+ENV UV_PYTHON=python${PYTHON_VERSION}
 
 RUN uv venv --python ${PYTHON_VERSION}
 
@@ -53,6 +56,8 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
+# Run with: docker run --rm --gpus all IMAGE python /app/gpu-smoke.py
+COPY docker/gpu-smoke.py /app/gpu-smoke.py
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app:$PYTHONPATH"
